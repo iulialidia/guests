@@ -26,15 +26,15 @@
     <div class="form-group">
       <label for="prezenta">Vei fi alături de noi?</label>
       <select id="prezenta" name="prezenta" required onchange="togglePrezenta(this.value)">
-        <option value="Da">Cu mare drag vin / venim</option>
-        <option value="Nu">Din păcate nu pot / putem ajunge</option>
+        <option value="Da">DA</option>
+        <option value="Nu">Din pacate, nu pot ajunge</option>
       </select>
     </div>
 
     <div id="sectiunePrezenti">
       <div class="form-group">
-        <label for="nrPersoane">Număr total persoane (inclusiv tu):</label>
-        <input type="number" id="nrPersoane" name="nrPersoane" min="1" value="1" required onchange="generateGuestFields(this.value)">
+        <label for="nrPersoane">Total invitati confirmati (inclusiv tu):</label>
+        <input type="number" id="nrPersoane" name="nrPersoane" min="1" value="1" required oninput="generateGuestFields(this.value)" onchange="generateGuestFields(this.value)">
         
         <div id="containerInsotitori" class="sub-container" style="display: none;">
           </div>
@@ -67,8 +67,8 @@
       <div class="form-group">
         <label for="cazare">Ai nevoie de cazare la Conacul Archia?</label>
         <select id="cazare" name="cazare">
+          <option value="Da" selected>Da, aș dori cazare</option>
           <option value="Nu">Nu am nevoie</option>
-          <option value="Da">Da, aș dori cazare</option>
         </select>
       </div>
     </div>
