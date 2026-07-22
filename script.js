@@ -1,88 +1,72 @@
-<!DOCTYPE html>
-<html lang="ro">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirmare Prezență - Vlad & Iulia</title>
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzN8yG3kctTG_NRCwvqmK_6B3po1L5iuvfjC-RumUPKOLVAbA7uf7VpnrXks4xZQUBhSA/exec";
 
-  <style>
-    body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; }
-    .form-group { margin-bottom: 20px; }
-    label { display: block; margin-bottom: 5px; font-weight: bold; }
-    input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
-    .menu-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .menu-row input { width: 80px; }
-    .sub-container { margin-left: 20px; border-left: 2px solid #ccc; padding-left: 15px; margin-top: 10px; }
-  </style>
-</head>
-<body>
+// Generare dinamică câmpuri însoțitori (Persoana 2, Persoana 3...)
+function generateGuestFields(total) {
+  const container = document.getElementById('containerInsotitori');
+  container.innerHTML = '';
+  
+  const nrInsotitori = parseInt(total) - 1;
+  
+  if (nrInsotitori > 0) {
+    container.style.display = 'block';
+    
+    for (let i = 2; i <= parseInt(total); i++) {
+      const div = document.createElement('div');
+      div.style.marginBottom = '10px';
+      
+      div.innerHTML = `
+        <label style="font-size: 0.9em; color: #444;">Persoana ${i}:</label>
+        <input type="text" name="persoana_${i}" placeholder="Nume Prenume" required>
+      `;
+      container.appendChild(div);
+    }
+  } else {
+    container.style.display = 'none';
+  }
+}
 
-  <form id="rsvpForm">
-    <div class="form-group">
-      <label for="nume">Nume & Prenume (Invitat principal):</label>
-      <input type="text" id="nume" name="nume" required placeholder="ex: Popa Andrei">
-    </div>
+// Ascunde/Arată câmpurile dacă bifează "Nu vin"
+function togglePrezenta(val) {
+  const sectiune = document.getElementById('sectiunePrezenti');
+  sectiune.style.display = (val === 'Nu') ? 'none' : 'block';
+}
 
-    <div class="form-group">
-      <label for="prezenta">Vei fi alături de noi?</label>
-      <select id="prezenta" name="prezenta" required onchange="togglePrezenta(this.value)">
-        <option value="Da">Cu mare drag vin / venim</option>
-        <option value="Nu">Din păcate nu pot / putem ajunge</option>
-      </select>
-    </div>
-
-    <div id="sectiunePrezenti">
-      <div class="form-group">
-        <label for="nrPersoane">Număr total persoane (inclusiv tu):</label>
-        <input type="number" id="nrPersoane" name="nrPersoane" min="1" value="1" required oninput="generateGuestFields(this.value)" onchange="generateGuestFields(this.value)">
-        
-        <div id="containerInsotitori" class="sub-container" style="display: none;">
-          </div>
-      </div>
-
-      <div class="form-group">
-        <label>Selecție Meniu per persoană:</label>
-        
-        <div class="menu-row">
-          <span>Meniu Standard:</span>
-          <input type="number" id="nrStandard" name="nrStandard" min="0" value="1">
-        </div>
-
-        <div class="menu-row">
-          <span>Meniu Vegetarian:</span>
-          <input type="number" id="nrVegetarian" name="nrVegetarian" min="0" value="0">
-        </div>
-
-        <div class="menu-row">
-          <span>Meniu Copil:</span>
-          <input type="number" id="nrCopil" name="nrCopil" min="0" value="0">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="alergii">Alergii sau restricții alimentare (opțional):</label>
-        <textarea id="alergii" name="alergii" rows="2" placeholder="ex: 1 persoană are alergie la nuci, 1 persoană are intoleranță la lactoză"></textarea>
-      </div>
-
-      <div class="form-group">
-        <label for="cazare">Ai nevoie de cazare la Conacul Archia?</label>
-        <select id="cazare" name="cazare">
-          <option value="Nu">Nu am nevoie</option>
-          <option value="Da">Da, aș dori cazare</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label for="mesaj">Dacă dorești să transmiți un mesaj către Vlad și Iulia:</label>
-      <textarea id="mesaj" name="mesaj" rows="3" placeholder="Scrie aici un gând sau o urare..."></textarea>
-    </div>
-
-    <button type="submit" id="submitBtn">Trimite Confirmarea</button>
-  </form>
-
-  <div id="statusMessage" style="display:none; margin-top: 15px;"></div>
-
-  <script src="script.js"></script>
-</body>
-</html>
+// Trimiterea datelor
+document.getElementById('rsvpForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const submitBtn = document.getElementById('submitBtn');
+  const statusMsg = document.getElementById('statusMessage');
+  
+  submitBtn.disabled = true;
+  submitBtn.innerText = "Se trimite...";
+  
+  const formData = new FormData(this);
+  
+  fetch(GOOGLE_SCRIPT_URL, {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if(data.result === 'success') {
+      statusMsg.style.display = 'block';
+      statusMsg.style.color = 'green';
+      statusMsg.innerText = "❤️ Îți mulțumim! Răspunsul tău a fost salvat.";
+      document.getElementById('rsvpForm').reset();
+      generateGuestFields(1);
+    } else {
+      throw new Error(data.error);
+    }
+  })
+  .catch(error => {
+    statusMsg.style.display = 'block';
+    statusMsg.style.color = 'red';
+    statusMsg.innerText = "A apărut o eroare. Te rugăm să încerci din nou!";
+    console.error('Eroare:', error);
+  })
+  .finally(() => {
+    submitBtn.disabled = false;
+    submitBtn.innerText = "Trimite Confirmarea";
+  });
+});
