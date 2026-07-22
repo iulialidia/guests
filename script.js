@@ -25,7 +25,7 @@ function generateGuestFields(total) {
   }
 }
 
-// Ascunde/Arată câmpurile dacă bifează "Nu vin"
+// Ascunde/Arată câmpurile dacă bifează "Din pacate, nu pot ajunge"
 function togglePrezenta(val) {
   const sectiune = document.getElementById('sectiunePrezenti');
   sectiune.style.display = (val === 'Nu') ? 'none' : 'block';
