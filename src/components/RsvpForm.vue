@@ -247,7 +247,7 @@ function newResponse() {
           </div>
         </template>
 
-        <div class="field">
+        <div v-if="form.prezenta" class="field">
           <label for="mesaj">Dacă dorești să ne transmiți un mesaj</label>
           <textarea id="mesaj" v-model="form.mesaj" rows="3" placeholder="Scrie aici un gând sau o urare..."></textarea>
         </div>
