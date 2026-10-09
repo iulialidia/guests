@@ -98,9 +98,9 @@ const headerFont = Math.max(72, Math.min(vw * 0.14, 90))
 
   // Starting state
   // hidden by a clip that is 'wiped' open left → right, like writing (generous margins for the swashes)
-  //    Top/bottom/left margins are very generous so tall loops (like the top of the V) are never cut.
-  const HIDDEN = 'inset(-250% 102% -250% -60%)'
-  const SHOWN = 'inset(-250% -60% -250% -60%)'
+  //    (the words have big padding, so the whole letters fit inside the clip — no negative values needed)
+  const HIDDEN = 'inset(0% 100% 0% 0%)'
+  const SHOWN = 'inset(0% 0% 0% 0%)'
   gsap.set(words, { clipPath: HIDDEN, webkitClipPath: HIDDEN })
   gsap.set(amp.value, { opacity: 0 })
   gsap.set(names.value, { visibility: 'visible' })
@@ -293,7 +293,14 @@ onBeforeUnmount(() => {
   visibility: hidden;
 }
 
-.word { display: inline-block; padding: 0.15em 0.05em; }
+.word {
+  display: inline-block;
+  /* Big padding so the loops and tails of the script letters sit INSIDE the box
+     (Safari cuts off ink that sticks out of an animated element); the negative
+     margins cancel it out, so the layout looks exactly the same. */
+  padding: 0.6em 0.35em;
+  margin: -0.45em -0.3em;
+}
 .iulia { transform: translateY(0.35em); }
 
 .amp {
