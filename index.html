@@ -4,77 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Confirmare Prezență - Vlad & Iulia</title>
-
-  <style>
-    body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; }
-    .form-group { margin-bottom: 20px; }
-    label { display: block; margin-bottom: 5px; font-weight: bold; }
-    input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
-    .menu-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .menu-row input { width: 80px; }
-    .sub-container { margin-left: 20px; border-left: 2px solid #ccc; padding-left: 15px; margin-top: 10px; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ms+Madi&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-
-  <form id="rsvpForm">
-    <div class="form-group">
-      <label for="nume">Nume & Prenume (Invitat principal):</label>
-      <input type="text" id="nume" name="nume" required placeholder="Nume Prenume">
-    </div>
-
-    <div class="form-group">
-      <label for="prezenta">Vei fi alături de noi?</label>
-      <select id="prezenta" name="prezenta" required onchange="togglePrezenta(this.value)">
-        <option value="Da">DA</option>
-        <option value="Nu">Din pacate, nu pot ajunge</option>
-      </select>
-    </div>
-
-    <div id="sectiunePrezenti">
-      <div class="form-group">
-        <label for="nrPersoane">Total invitati confirmati (inclusiv tu):</label>
-        <input type="number" id="nrPersoane" name="nrPersoane" min="1" value="1" required oninput="generateGuestFields(this.value)" onchange="generateGuestFields(this.value)">
-        
-        <div id="containerInsotitori" class="sub-container" style="display: none;">
-          </div>
-      </div>
-
-      <div class="form-group">
-        <label>Selecție Meniu per persoană:</label>
-        
-        <div class="menu-row">
-          <span>Meniu Standard:</span>
-          <input type="number" id="nrStandard" name="nrStandard" min="0" value="1">
-        </div>
-
-        <div class="menu-row">
-          <span>Meniu Vegetarian:</span>
-          <input type="number" id="nrVegetarian" name="nrVegetarian" min="0" value="0">
-        </div>
-
-        <div class="menu-row">
-          <span>Meniu Copil:</span>
-          <input type="number" id="nrCopil" name="nrCopil" min="0" value="0">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="alergii">Alergii sau restricții alimentare (opțional):</label>
-        <textarea id="alergii" name="alergii" rows="2" placeholder="Specificați alergiile sau restricțiile alimentare..."></textarea>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label for="mesaj">Dacă dorești să ne transmiți un mesaj:</label>
-      <textarea id="mesaj" name="mesaj" rows="3" placeholder="Scrie aici un gând sau o urare..."></textarea>
-    </div>
-
-    <button type="submit" id="submitBtn">Trimite Confirmarea</button>
-  </form>
-
-  <div id="statusMessage" style="display:none; margin-top: 15px;"></div>
-
-  <script src="script.js"></script>
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>
