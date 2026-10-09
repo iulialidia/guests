@@ -12,7 +12,9 @@ const WEDDING_DATE_TEXT = '15.05.2027'
 const CALENDAR_LINK =
   'https://calendar.google.com/calendar/render?action=TEMPLATE' +
   '&text=' + encodeURIComponent('Nunta Vlad & Iulia') +
-  '&dates=20270515/20270516'
+  '&dates=20270515/20270516' +
+  '&location=' + encodeURIComponent('Conacul Archia, Archia, județul Hunedoara') +
+  '&details=' + encodeURIComponent('Nunta Vlad & Iulia la Conacul Archia.\nDetalii: https://nunta-la-conac.netlify.app')
 // --------------------------
 
 const daysLeft = computed(() => {
