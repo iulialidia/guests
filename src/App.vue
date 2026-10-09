@@ -98,8 +98,9 @@ const headerFont = Math.max(72, Math.min(vw * 0.14, 90))
 
   // Starting state
   // hidden by a clip that is 'wiped' open left → right, like writing (generous margins for the swashes)
-  const HIDDEN = 'inset(-60% 115% -90% -15%)'
-  const SHOWN = 'inset(-60% -15% -90% -15%)'
+  //    Top/bottom/left margins are very generous so tall loops (like the top of the V) are never cut.
+  const HIDDEN = 'inset(-250% 102% -250% -60%)'
+  const SHOWN = 'inset(-250% -60% -250% -60%)'
   gsap.set(words, { clipPath: HIDDEN, webkitClipPath: HIDDEN })
   gsap.set(amp.value, { opacity: 0 })
   gsap.set(names.value, { visibility: 'visible' })
