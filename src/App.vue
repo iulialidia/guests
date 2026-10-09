@@ -46,7 +46,9 @@ function toggleInvite(show) {
   center.value.style.marginTop = '0.9em'   // room for the riders above the names (they stay there to the end)
   if (show) gsap.set(invite.value, { autoAlpha: 1 })
   const after = center.value.getBoundingClientRect().top
-  gsap.fromTo(center.value, { y: before - after }, { y: 0, duration: 0.9, ease: 'power3.inOut' })
+  // when hiding, glide with exactly the same timing as the header shrinking,
+  // so the names travel straight to their place (no dip down and back up)
+  gsap.fromTo(center.value, { y: before - after }, { y: 0, duration: show ? 0.9 : 1.1, ease: 'power3.inOut' })
 }
 
 let tappedEarly = false
@@ -176,22 +178,23 @@ const headerFont = Math.max(72, Math.min(vw * 0.14, 90))
     else waiting.value = true
   })
 
-  // 2c. After the tap: the invitation fades out, names go back to the middle
+  // 2c–4. After the tap, everything happens in ONE smooth move:
+  //   the invitation fades out, the names stay up top and settle into the header,
+  //   while the green comes in only behind them and melts into cream below.
+  //   (no more 'names back to the middle → green → up' detour)
   tl.to(invite.value, { autoAlpha: 0, duration: 0.5, ease: 'power1.in' })
-  tl.call(() => toggleInvite(false))
-  tl.to({}, { duration: 0.8 })
-
-  // 3. The screen turns green, names and drawing turn white
-  tl.to(document.body, { backgroundColor: DARK_BG, duration: 1.2, ease: 'power2.inOut' }, 'invert')
-  tl.to([names.value, amp.value], { color: LIGHT_TEXT, duration: 1.2, ease: 'power2.inOut' }, 'invert')
-  tl.to(img.value, { filter: 'brightness(0) invert(1)', duration: 1.2, ease: 'power2.inOut' }, 'invert')
-  tl.to({}, { duration: 0.3 })
-
-  // 4. Frame 10 fades away, names move up and get smaller, subtitle appears
-  // (the riders stay above the names, now white on green)
+  tl.addLabel('up')
+  tl.call(() => toggleInvite(false), null, 'up')
+  tl.to(document.body, { backgroundColor: DARK_BG, duration: 1.3, ease: 'power2.inOut' }, 'up')
+  tl.to(document.body, { '--cream-a': 1, duration: 1.3, ease: 'power2.inOut' }, 'up')   // green only at the top
+  // names & riders switch to white quickly, right when the background is half-way,
+  // so they never blend into it
+  tl.to([names.value, amp.value], { color: LIGHT_TEXT, duration: 0.5, ease: 'power1.inOut' }, 'up+=0.45')
+  tl.to(img.value, { filter: 'brightness(0) invert(1)', duration: 0.5, ease: 'power1.inOut' }, 'up+=0.45')
   tl.to(hero.value, { height: headerHeight, duration: 1.1, ease: 'power3.inOut' }, 'up')
-  tl.to(document.body, { '--cream-a': 1, duration: 1.4, ease: 'power2.inOut' }, 'up')   // green melts into cream below
-  tl.to(center.value, { fontSize: headerFont, duration: 1.1, ease: 'power3.inOut' }, 'up')
+  // start from the real current size (it is a CSS var(), which GSAP can't read as a number)
+  tl.fromTo(center.value, { fontSize: () => getComputedStyle(center.value).fontSize },
+    { fontSize: headerFont, duration: 1.1, ease: 'power3.inOut', immediateRender: false }, 'up')
   // after the move, switch to CSS sizes so the header adapts to any screen
   tl.set(hero.value, { height: 'max(34svh, 240px)' }, 'up+=1.1')
   tl.set(center.value, { fontSize: 'clamp(72px, 14vw, 90px)' }, 'up+=1.1')
