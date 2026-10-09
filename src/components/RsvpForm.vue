@@ -9,6 +9,9 @@ const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzN8yG3kctTG_
 const SCRIPT_FONT = 'Brittany'           // used only for the date
 const WEDDING_DATE = new Date(2027, 4, 15) // 15 May 2027 (months count from 0)
 const WEDDING_DATE_TEXT = '15.05.2027'
+// Save-the-date video on YouTube (Unlisted). Paste the link between the quotes;
+// while it's empty, the button simply doesn't show.
+const SAVE_THE_DATE_URL = 'https://youtu.be/2v6mp8b5dPk'
 const CALENDAR_LINK =
   'https://calendar.google.com/calendar/render?action=TEMPLATE' +
   '&text=' + encodeURIComponent('Nunta Vlad & Iulia') +
@@ -208,6 +211,13 @@ function newResponse() {
         </div>
 
         <button type="button" class="again foot" @click="newResponse">Trimite un alt răspuns</button>
+
+        <div v-if="SAVE_THE_DATE_URL" class="foot std-wrap">
+          <a class="std-link" :href="SAVE_THE_DATE_URL" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" /></svg>
+            Revezi save the date-ul nostru
+          </a>
+        </div>
       </section>
 
       <!-- ---------- Form ---------- -->
@@ -486,6 +496,28 @@ form { margin: 0; }
   opacity: 0.85;
   mix-blend-mode: multiply;
 }
+
+.std-wrap { margin-top: 18px; }
+
+.std-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--sage);
+  border-radius: 999px;
+  color: var(--sage);
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.std-link:hover { background: var(--sage); color: #fbf9f5; }
+.std-link svg { width: 15px; height: 15px; fill: currentColor; }
 
 .again {
   margin-top: 26px;
