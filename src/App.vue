@@ -89,7 +89,7 @@ onMounted(async () => {
 
   const vh = window.innerHeight
   const vw = window.innerWidth
-  const chars = names.value.querySelectorAll('.char')
+  const words = names.value.querySelectorAll('.word')   // 'Vlad' and 'Iulia', kept whole so the script letters stay joined
   const envelope = [envBack.value, envFront.value]
 
   // Final sizes once the names become the header
@@ -97,7 +97,10 @@ onMounted(async () => {
 const headerFont = Math.max(72, Math.min(vw * 0.14, 90))
 
   // Starting state
-  gsap.set(chars, { opacity: 0, y: 18 })
+  // hidden by a clip that is 'wiped' open left → right, like writing (generous margins for the swashes)
+  const HIDDEN = 'inset(-60% 115% -90% -15%)'
+  const SHOWN = 'inset(-60% -15% -90% -15%)'
+  gsap.set(words, { clipPath: HIDDEN, webkitClipPath: HIDDEN })
   gsap.set(amp.value, { opacity: 0 })
   gsap.set(names.value, { visibility: 'visible' })
   gsap.set(img.value, { filter: 'brightness(1) invert(0)' })
@@ -146,10 +149,13 @@ const headerFont = Math.max(72, Math.min(vw * 0.14, 90))
     onComplete: () => { currentFrame.value = RIDE_FRAMES[0] }   // always stop on drawing 7 (side by side)
   }, 'ride')
 
-  // 2. Just before the riders stop, the names appear letter by letter
-  tl.to(chars, { opacity: 1, y: 0, duration: 0.6, stagger: 0.08, ease: 'power2.out' },
+  // 2. Just before the riders stop, the names are 'written' left to right
+  //    (whole words, so the joined-up letters stay smooth on every phone)
+  tl.to(words[0], { clipPath: SHOWN, webkitClipPath: SHOWN, duration: 0.9, ease: 'power1.inOut' },
     `ride+=${Math.max(0, RIDE_SECONDS - NAMES_LEAD)}`)
-  tl.to(amp.value, { opacity: 1, duration: 0.6 }, '-=0.6')
+  tl.to(amp.value, { opacity: 1, duration: 0.4 }, '-=0.1')
+  tl.to(words[1], { clipPath: SHOWN, webkitClipPath: SHOWN, duration: 1, ease: 'power1.inOut' }, '-=0.2')
+  tl.set(words, { clearProps: 'clipPath,webkitClipPath' })
   tl.to({}, { duration: HOLD })
 
   // 2b. Names + drawing move up, the text and photo appear, then WAIT for a tap
@@ -214,9 +220,9 @@ onBeforeUnmount(() => {
   <header ref="hero" class="hero">
     <div ref="center" class="center">
       <h1 ref="names" class="names" :style="{ fontFamily: `'${NAMES_FONT}', cursive` }" aria-label="Vlad & Iulia">
-        <span class="word"><span v-for="(c, i) in 'Vlad'" :key="'v' + i" class="char">{{ c }}</span></span>
+        <span class="word">Vlad</span>
         <span ref="amp" class="amp">&amp;</span>
-        <span class="word iulia"><span v-for="(c, i) in 'Iulia'" :key="'i' + i" class="char">{{ c }}</span></span>
+        <span class="word iulia">Iulia</span>
       </h1>
       <img ref="img" class="drawing" :src="currentFrame" alt="">
     </div>
@@ -287,7 +293,6 @@ onBeforeUnmount(() => {
 }
 
 .word { display: inline-block; padding: 0.15em 0.05em; }
-.char { display: inline-block; }
 .iulia { transform: translateY(0.35em); }
 
 .amp {
