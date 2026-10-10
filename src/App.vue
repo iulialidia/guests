@@ -15,7 +15,9 @@ const NAMES_LEAD = 1         // "Vlad & Iulia" starts appearing this many second
 const RIDE_SCALE = 0.55      // how small they get at the end (smaller = further away)
 const HOLD = 1.5             // seconds the names sit behind frame 10 before going green
 const NAMES_FONT = 'Brittany' // must match the font-family in your @font-face
-const DARK_BG = '#3f6146'     // softer forest green (was #0d3d14)
+const DARK_BG = '#6f7a58'     // olive / sage green background
+const GHOST_COLOR = '#7c8766' // big frame 8 in the background: just a touch lighter than DARK_BG
+const GHOST_FRAME = 7         // which drawing sits big in the background after the colour change
 const LIGHT_TEXT = '#fbf9f5'
 // ---------------------
 
@@ -25,11 +27,56 @@ const frames = Array.from({ length: FRAME_COUNT }, (_, i) =>
 )
 // While riding away the last 4 drawings keep cycling (hair swings left/right).
 // ride-7/8/9 are frames 7–9 resized to match frame 10, so the riders don't jump in size.
-const RIDE_FRAMES = ['ride-7', 'ride-8', 'ride-9', 'frame-10'].map(n =>
+const RIDE_FRAMES = ['ride-7', 'ride-8', 'ride-9'].map(n =>
   `${import.meta.env.BASE_URL}loading/${n}.png`
 )
 const currentFrame = ref(frames[0])
 const envelopeGone = ref(false)
+
+// Big background drawing: the PNG has lots of empty space around the lines,
+// so we crop it to just the drawing once it's loaded. That way the drawing itself
+// fills the background instead of a small drawing in a big empty box.
+const ghostSrc = frames[GHOST_FRAME - 1]
+const ghostMask = ref(ghostSrc)
+
+function cropToInk(src) {
+  return new Promise(res => {
+    const im = new Image()
+    im.onload = () => {
+      try {
+        const w = im.naturalWidth, h = im.naturalHeight
+        const c = document.createElement('canvas')
+        c.width = w; c.height = h
+        const ctx = c.getContext('2d', { willReadFrequently: true })
+        ctx.drawImage(im, 0, 0)
+        const d = ctx.getImageData(0, 0, w, h).data
+        let x0 = w, y0 = h, x1 = -1, y1 = -1
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            if (d[(y * w + x) * 4 + 3] > 20) {
+              if (x < x0) x0 = x
+              if (x > x1) x1 = x
+              if (y < y0) y0 = y
+              if (y > y1) y1 = y
+            }
+          }
+        }
+        if (x1 < 0) return res(src)
+        const pad = 2
+        x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad)
+        x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad)
+        const out = document.createElement('canvas')
+        out.width = x1 - x0 + 1; out.height = y1 - y0 + 1
+        out.getContext('2d').drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height)
+        res(out.toDataURL('image/png'))
+      } catch {
+        res(src)   // if anything goes wrong, use the original image
+      }
+    }
+    im.onerror = () => res(src)
+    im.src = src
+  })
+}
 
 // Invitation screen (waits for a tap before the green + envelope)
 const INVITE_TEXT = 'Ne căsătorim și ne-am bucura să fii alături de noi.'
@@ -43,7 +90,8 @@ const invite = ref(null)
 function toggleInvite(show) {
   const before = center.value.getBoundingClientRect().top
   invite.value.style.display = show ? 'flex' : 'none'
-  center.value.style.marginTop = '0.9em'   // room for the riders above the names (they stay there to the end)
+  // room for the riders above the names while they're there; none once they've faded out
+  center.value.style.marginTop = show ? '0.9em' : '0'
   if (show) gsap.set(invite.value, { autoAlpha: 1 })
   const after = center.value.getBoundingClientRect().top
   // when hiding, glide with exactly the same timing as the header shrinking,
@@ -68,6 +116,8 @@ const amp = ref(null)
 const letter = ref(null)
 const envBack = ref(null)
 const envFront = ref(null)
+const backdrop = ref(null)
+const ghost = ref(null)
 
 let tl = null
 
@@ -88,6 +138,7 @@ function finish() {
 onMounted(async () => {
   document.body.style.overflow = 'hidden'
   await Promise.all([preload(), document.fonts.load(`1em "${NAMES_FONT}"`)])
+  cropToInk(ghostSrc).then(url => { ghostMask.value = url })
 
   const vh = window.innerHeight
   const vw = window.innerWidth
@@ -109,6 +160,8 @@ const headerFont = Math.max(72, Math.min(vw * 0.14, 90))
   gsap.set(img.value, { filter: 'brightness(1) invert(0)' })
   gsap.set(envelope, { yPercent: 140 })   // parked below the screen, still hidden
   gsap.set(letter.value, { autoAlpha: 0 })
+  gsap.set(backdrop.value, { autoAlpha: 0 })
+  gsap.set(ghost.value, { autoAlpha: 0 })
 
   const state = { f: 0 }
   tl = gsap.timeline()
@@ -178,19 +231,16 @@ const headerFont = Math.max(72, Math.min(vw * 0.14, 90))
     else waiting.value = true
   })
 
-  // 2c–4. After the tap, everything happens in ONE smooth move:
-  //   the invitation fades out, the names stay up top and settle into the header,
-  //   while the green comes in only behind them and melts into cream below.
-  //   (no more 'names back to the middle → green → up' detour)
+  // 3. After the tap: the small riders fade away, the names settle into the header,
+  //    the screen turns olive, and the big still drawing + the corner glow fade in behind.
   tl.to(invite.value, { autoAlpha: 0, duration: 0.5, ease: 'power1.in' })
   tl.addLabel('up')
+  tl.to(img.value, { autoAlpha: 0, duration: 0.5, ease: 'power1.in' }, 'up')
   tl.call(() => toggleInvite(false), null, 'up')
-  tl.to(document.body, { backgroundColor: DARK_BG, duration: 1.3, ease: 'power2.inOut' }, 'up')
-  tl.to(document.body, { '--cream-a': 1, duration: 1.3, ease: 'power2.inOut' }, 'up')   // green only at the top
-  // names & riders switch to white quickly, right when the background is half-way,
-  // so they never blend into it
+  tl.to(document.body, { backgroundColor: DARK_BG, '--cream-a': 0, duration: 1.3, ease: 'power2.inOut' }, 'up')
+  tl.to(backdrop.value, { autoAlpha: 1, duration: 1.6, ease: 'power2.inOut' }, 'up+=0.3')
+  tl.to(ghost.value, { autoAlpha: 1, duration: 1.8, ease: 'power2.inOut' }, 'up+=0.6')
   tl.to([names.value, amp.value], { color: LIGHT_TEXT, duration: 0.5, ease: 'power1.inOut' }, 'up+=0.45')
-  tl.to(img.value, { filter: 'brightness(0) invert(1)', duration: 0.5, ease: 'power1.inOut' }, 'up+=0.45')
   tl.to(hero.value, { height: headerHeight, duration: 1.1, ease: 'power3.inOut' }, 'up')
   // start from the real current size (it is a CSS var(), which GSAP can't read as a number)
   tl.fromTo(center.value, { fontSize: () => getComputedStyle(center.value).fontSize },
@@ -221,6 +271,23 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <!-- Olive-screen decoration: heavy drifting glow in the corner, a soft shade in the
+       opposite corner, and the big still drawing running off the right edge -->
+  <div ref="backdrop" class="backdrop" aria-hidden="true">
+    <div class="shade"></div>
+    <div class="bubble bubble-a"></div>
+    <div class="bubble bubble-b"></div>
+    <div
+      ref="ghost"
+      class="ghost"
+      :style="{
+        backgroundColor: GHOST_COLOR,
+        maskImage: `url(${ghostMask})`,
+        WebkitMaskImage: `url(${ghostMask})`
+      }"
+    ></div>
+  </div>
+
   <header ref="hero" class="hero">
     <div ref="center" class="center">
       <h1 ref="names" class="names" :style="{ fontFamily: `'${NAMES_FONT}', cursive` }" aria-label="Vlad & Iulia">
@@ -258,6 +325,106 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* ---------- Olive backdrop (appears after the tap) ---------- */
+/* --glow sets how strong the corner gradient is: 1 = this heavier default,
+   higher = even stronger, lower = subtler. */
+.backdrop {
+  --glow: 1;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* a deeper olive in the top-right corner, so the light corner has something to fade against */
+.shade {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 85% 75% at 100% 0%,
+    rgba(38, 46, 26, calc(0.42 * var(--glow))) 0%,
+    rgba(38, 46, 26, calc(0.18 * var(--glow))) 45%,
+    transparent 75%);
+}
+
+/* Heavy cream glow in the bottom-left corner, slowly drifting like a bubble */
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(26px);
+  will-change: transform;
+}
+.bubble-a {
+  width: 110vmax;
+  height: 110vmax;
+  left: -38vmax;
+  bottom: -40vmax;
+  background: radial-gradient(circle,
+    rgba(238, 240, 208, calc(0.72 * var(--glow))) 0%,
+    rgba(232, 232, 196, calc(0.46 * var(--glow))) 26%,
+    rgba(226, 222, 186, calc(0.2 * var(--glow))) 48%,
+    transparent 70%);
+  animation: drift-a 18s ease-in-out infinite alternate;
+}
+.bubble-b {
+  width: 52vmax;
+  height: 52vmax;
+  left: -10vmax;
+  bottom: -18vmax;
+  background: radial-gradient(circle,
+    rgba(250, 246, 226, calc(0.6 * var(--glow))) 0%,
+    rgba(244, 238, 212, calc(0.24 * var(--glow))) 45%,
+    transparent 70%);
+  animation: drift-b 13s ease-in-out infinite alternate;
+}
+@keyframes drift-a {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(5vmax, -4vmax) scale(1.08); }
+  100% { transform: translate(2vmax, -8vmax) scale(0.95); }
+}
+@keyframes drift-b {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(7vmax, -6vmax) scale(1.15); }
+  100% { transform: translate(-2vmax, -3vmax) scale(0.9); }
+}
+
+/* Big drawing, zoomed right in (cropped to its lines), running off the right edge.
+   --ghost-h = how big, --ghost-x = where it starts from the left. */
+.ghost {
+  --ghost-h: 90svh;
+  --ghost-x: 65vw;
+  position: absolute;
+  top: 50%;
+  left: var(--ghost-x);
+  width: 300vw;                /* wide box; the drawing just runs off the screen */
+  height: var(--ghost-h);
+  translate: 0 -50%;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-size: auto 100%;        /* fit the HEIGHT, keep proportions */
+  -webkit-mask-size: auto 100%;
+  mask-position: left center;
+  -webkit-mask-position: left center;
+}
+
+/* Small screens: up in the top-right corner, running off the top and right edges */
+@media (max-width: 640px) {
+  .ghost {
+    --ghost-h: 36svh;
+    --ghost-x: 52svw;
+    top: 3svh;
+    translate: none;
+    mask-position: left top;
+    -webkit-mask-position: left top;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble { animation: none; }
+}
+
 /* ---------- Header: fills the screen during the intro, then shrinks ---------- */
 .hero {
   position: relative;
@@ -289,7 +456,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   font-weight: 400;
-  font-size: 1em;
+  font-size: 1.2em;
   line-height: 1;
   color: var(--clay);
   white-space: nowrap;
@@ -423,7 +590,7 @@ onBeforeUnmount(() => {
   background: #fbf9f5;
   padding: 32px 30px 36px;
   border-radius: 14px;
-  box-shadow: 0 18px 40px rgba(20, 40, 20, 0.12);
+  box-shadow: 0 18px 40px rgba(40, 45, 25, 0.14);
   visibility: hidden;
   opacity: 0;
 }
