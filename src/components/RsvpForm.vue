@@ -6,7 +6,7 @@ import GuestCard from './GuestCard.vue'
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzN8yG3kctTG_NRCwvqmK_6B3po1L5iuvfjC-RumUPKOLVAbA7uf7VpnrXks4xZQUBhSA/exec'
 
 // ---- Thank-you screen ----
-const SCRIPT_FONT = 'Brittany'           // used only for the date
+const SCRIPT_FONT = 'Playfair Display'   // used only for the date 
 const WEDDING_DATE = new Date(2027, 4, 15) // 15 May 2027 (months count from 0)
 const WEDDING_DATE_TEXT = '15.05.2027'
 // Save-the-date video on YouTube (Unlisted). Paste the link between the quotes;
@@ -263,7 +263,7 @@ function newResponse() {
         <!-- Coming -->
         <template v-if="submitted.prezenta === 'Da'">
           <p class="lead">Abia așteptăm să sărbătorim împreună. Ne vedem pe</p>
-          <p class="big-script" :style="{ fontFamily: `'${SCRIPT_FONT}', cursive` }">{{ WEDDING_DATE_TEXT }}</p>
+          <p class="big-script" :style="{ fontFamily: `'${SCRIPT_FONT}', Georgia, serif`, fontStyle: 'italic' }">{{ WEDDING_DATE_TEXT }}</p>
           <p v-if="daysLeft > 0" class="after countdown">încă <strong>{{ daysLeft }}</strong> {{ daysLabel }}</p>
           <a class="after cal-link" :href="CALENDAR_LINK" target="_blank" rel="noopener">Adaugă în calendar</a>
         </template>
@@ -495,11 +495,10 @@ form { margin: 0; }
 
 .big-script {
   margin: 6px 0 4px;
-  font-size: clamp(3.4rem, 13vw, 5rem);
+  font-size: clamp(2.6rem, 11vw, 3.6rem);
   line-height: 1.25;
   color: var(--clay);
-  font-weight: 800;
-  font:bold
+  font-weight: 400;
 }
 
 .countdown {
