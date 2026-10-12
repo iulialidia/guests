@@ -56,7 +56,12 @@ const WEEK = [
 // Sections fade in as they scroll into view
 const root = ref(null)
 let io = null
+// Hide the 'Răspunde invitației' block once the form has been sent (shows again for 'Trimite un alt răspuns')
+const answered = ref(false)
+const onAnswered = (e) => { answered.value = e.detail }
+
 onMounted(() => {
+  document.addEventListener('rsvp-answered', onAnswered)
   const items = root.value.querySelectorAll('.reveal')
   if (!('IntersectionObserver' in window)) {
     items.forEach(el => el.classList.add('in'))
@@ -69,7 +74,10 @@ onMounted(() => {
   }, { threshold: 0.15 })
   items.forEach(el => io.observe(el))
 })
-onBeforeUnmount(() => io?.disconnect())
+onBeforeUnmount(() => {
+  io?.disconnect()
+  document.removeEventListener('rsvp-answered', onAnswered)
+})
 </script>
 
 <template>
@@ -132,7 +140,7 @@ onBeforeUnmount(() => io?.disconnect())
     </section>
 
     <!-- Lead-in to the form -->
-    <section class="inv-block reveal rsvp-head">
+    <section v-show="!answered" class="inv-block reveal rsvp-head">
       <svg class="inv-flourish" viewBox="0 0 240 34" aria-hidden="true">
         <path d="M4 18 C40 18 60 6 90 12 C110 16 112 28 100 28 C88 28 92 10 120 10 C148 10 152 28 140 28 C128 28 130 16 150 12 C180 6 200 18 236 18" />
       </svg>
