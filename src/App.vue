@@ -249,15 +249,17 @@ const headerFont = Math.max(72, Math.min(vw * 0.14, 90))
   tl.set(hero.value, { height: 'max(34svh, 240px)' }, 'up+=1.1')
   tl.set(center.value, { fontSize: 'clamp(72px, 14vw, 90px)' }, 'up+=1.1')
 
-  // 5. The envelope rises with the form tucked inside
-  tl.set(envelope, { visibility: 'visible' }, 'envelope')   // only now, after the green
+  // 5. The envelope rises with the form tucked inside — right after the names have settled
+  //    in the header (the olive backdrop keeps fading in behind it, no need to wait for it)
+  tl.addLabel('envelope', 'up+=0.9')
+  tl.set(envelope, { visibility: 'visible' }, 'envelope')
   tl.set(letter.value, { y: vh * 1.1, autoAlpha: 1 }, 'envelope')
-  tl.to(envelope, { yPercent: 0, duration: 1, ease: 'power3.out' }, 'envelope')
-  tl.to(letter.value, { y: vh * 0.46 - headerHeight, duration: 1, ease: 'power3.out' }, 'envelope')
+  tl.to(envelope, { yPercent: 0, duration: 0.8, ease: 'power3.out' }, 'envelope')
+  tl.to(letter.value, { y: vh * 0.46 - headerHeight, duration: 0.8, ease: 'power3.out' }, 'envelope')
 
   // 6. The form slides up out of the envelope, then the envelope drops away
-  tl.to(letter.value, { y: 0, duration: 1.2, ease: 'power2.inOut' }, '+=0.4')
-  tl.to(envelope, { yPercent: 140, duration: 0.9, ease: 'power2.in' }, '-=0.6')
+  tl.to(letter.value, { y: 0, duration: 1, ease: 'power2.inOut' }, 'envelope+=1')
+  tl.to(envelope, { yPercent: 140, duration: 0.8, ease: 'power2.in' }, 'envelope+=1.4')
   tl.call(finish)
 
   // Respect "reduce motion" settings: jump straight to the end
