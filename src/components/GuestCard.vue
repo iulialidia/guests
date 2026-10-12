@@ -22,17 +22,21 @@ defineEmits(['remove'])
 
     <div class="guest-field">
       <label :for="'nume-' + guest.id">Nume &amp; Prenume <span class="req">*</span></label>
-      <input type="text" :id="'nume-' + guest.id" v-model="guest.nume" placeholder="Nume Prenume" required>
+      <input type="text" :id="'nume-' + guest.id" v-model="guest.nume" placeholder="Nume Prenume" required
+        :class="{ invalid: guest.errNume }" :aria-invalid="!!guest.errNume" @input="guest.errNume = ''">
+      <p v-if="guest.errNume" class="field-error">{{ guest.errNume }}</p>
     </div>
 
     <div class="guest-field">
       <label :for="'meniu-' + guest.id">Meniu <span class="req">*</span></label>
-      <select :id="'meniu-' + guest.id" v-model="guest.meniu" required>
+      <select :id="'meniu-' + guest.id" v-model="guest.meniu" required
+        :class="{ invalid: guest.errMeniu }" :aria-invalid="!!guest.errMeniu" @change="guest.errMeniu = ''">
         <option value="" disabled>Alege meniul</option>
         <option value="Standard">Standard</option>
         <option value="Vegetarian">Vegetarian</option>
         <option value="Copil">Copil</option>
       </select>
+      <p v-if="guest.errMeniu" class="field-error">{{ guest.errMeniu }}</p>
     </div>
   </div>
 </template>
@@ -66,6 +70,14 @@ defineEmits(['remove'])
   color: var(--muted);
   margin-bottom: 5px;
 }
+
+.field-error {
+  margin: 6px 0 0;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  color: var(--error);
+}
+.invalid { border-color: var(--error) !important; box-shadow: 0 0 0 1px var(--error); }
 
 .req { color: var(--error); font-weight: 600; }
 

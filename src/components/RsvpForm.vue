@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed } from 'vue'
+import { reactive, ref, computed, watch } from 'vue'
 import gsap from 'gsap'
 import GuestCard from './GuestCard.vue'
 
@@ -34,7 +34,7 @@ const daysLabel = computed(() => {
 })
 
 let guestSeq = 0
-const newGuest = () => ({ id: guestSeq++, nume: '', meniu: '' })
+const newGuest = () => ({ id: guestSeq++, nume: '', meniu: '', errNume: '', errMeniu: '' })
 
 const defaultForm = () => ({
   prezenta: '',
@@ -47,9 +47,15 @@ const form = reactive(defaultForm())
 const sending = ref(false)
 const status = ref(null)
 const submitted = ref(null)   // copy of the answers, shown on the thank-you screen
+// Let the rest of the invitation know when the thank-you screen is showing
+// (the 'Răspunde invitației' block above the form hides itself then)
+watch(submitted, (v) => document.dispatchEvent(new CustomEvent('rsvp-answered', { detail: !!v })))
 const root = ref(null)
+const errPrezenta = ref('')
+watch(() => form.prezenta, () => { errPrezenta.value = ''; status.value = null })
 
-const addGuest = () => form.guests.push(newGuest())
+const MAX_GUESTS = 8   // same limit as the Google Sheets script
+const addGuest = () => { if (form.guests.length < MAX_GUESTS) form.guests.push(newGuest()) }
 const removeGuest = (idx) => form.guests.splice(idx, 1)
 
 // ---------- Animations ----------
@@ -108,9 +114,55 @@ function onViewEnter(el, done) {
 }
 
 // ---------- Submit ----------
+// Same rule as the Google Sheets script: a name needs at least a few real letters
+const letters = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '')
+
+// Checks everything BEFORE sending. Each problem gets its own short message,
+// shown in red right under the field it belongs to. Returns the first field to fix.
+function checkForm() {
+  let first = null
+  const mark = (id) => { if (!first) first = id }
+  errPrezenta.value = ''
+  form.guests.forEach(g => { g.errNume = ''; g.errMeniu = '' })
+
+  if (!form.prezenta) {
+    errPrezenta.value = 'Te rugăm să alegi dacă vei fi alături de noi.'
+    mark('prezenta')
+    return first
+  }
+  const list = form.prezenta === 'Da' ? form.guests : [form.guests[0]]
+  list.forEach((g, idx) => {
+    const n = letters(g.nume).length
+    const nameId = form.prezenta === 'Da' ? 'nume-' + g.id : 'nume-nu'
+    if (n === 0) { g.errNume = 'Te rugăm să scrii numele și prenumele.'; mark(nameId) }
+    else if (n < (idx === 0 ? 3 : 2)) { g.errNume = 'Numele pare prea scurt — scrie numele și prenumele.'; mark(nameId) }
+    if (form.prezenta === 'Da' && !g.meniu) { g.errMeniu = 'Te rugăm să alegi meniul.'; mark('meniu-' + g.id) }
+  })
+  return first
+}
+
+function goTo(id) {
+  const el = document.getElementById(id)
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  setTimeout(() => el.focus({ preventScroll: true }), 350)
+}
+
+const PHONE_HELP = 'Dacă problema continuă, ne poți anunța telefonic: 0752 206 451 (Iulia) sau 0736 614 605 (Vlad).'
+const slow = ref(false)   // true when the server takes longer than a couple of seconds
+
 async function submitForm() {
-  sending.value = true
   status.value = null
+
+  const firstBad = checkForm()
+  if (firstBad) {
+    goTo(firstBad)
+    return
+  }
+
+  sending.value = true
+  slow.value = false
+  const slowTimer = setTimeout(() => { slow.value = true }, 2500)
 
   const fd = new FormData()
   fd.append('prezenta', form.prezenta)
@@ -134,9 +186,18 @@ async function submitForm() {
 
   fd.append('mesaj', form.mesaj)
 
+  // Give up waiting after 30 s (very slow or broken connection)
+  const ctrl = new AbortController()
+  const timeout = setTimeout(() => ctrl.abort(), 30000)
+
   try {
-    const res = await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', body: fd })
-    const data = await res.json()
+    const res = await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', body: fd, signal: ctrl.signal })
+    let data
+    try {
+      data = await res.json()
+    } catch (e) {
+      throw new Error('bad-response')
+    }
 
     if (data.result === 'success') {
       // Keep a copy of what was sent, then show the thank-you screen
@@ -150,15 +211,34 @@ async function submitForm() {
       }
       Object.assign(form, defaultForm())
     } else {
-      // Show the exact reason the sheet script gave (e.g. what's wrong with the name)
-      status.value = { type: 'error', message: data.message || 'A apărut o eroare. Te rugăm să încerci din nou!' }
+      // The sheet script explains what's wrong (closed RSVP, busy server, name, menus …)
+      status.value = {
+        type: 'error',
+        message: (data.message || 'Răspunsul nu a putut fi salvat. Te rugăm să încerci din nou.') +
+          (data.code === 'SERVER' ? ' ' + PHONE_HELP : '')
+      }
       console.warn('Răspuns server:', data)
     }
   } catch (err) {
-    status.value = { type: 'error', message: 'A apărut o eroare. Te rugăm să încerci din nou!' }
+    // No (readable) answer from the server. Sending again is safe:
+    // the same name updates the same answer, it is never counted twice.
+    let message
+    if (err.name === 'AbortError') {
+      message = 'Serverul răspunde greu acum. Te rugăm să încerci din nou peste câteva secunde.'
+    } else if (err.message === 'bad-response') {
+      message = 'Nu am primit confirmarea salvării. Te rugăm să apeși din nou pe „Trimite Confirmarea”.'
+    } else if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      message = 'Nu ești conectat la internet. Verifică conexiunea și încearcă din nou.'
+    } else {
+      message = 'Nu s-a putut trimite răspunsul — verifică conexiunea la internet și încearcă din nou.'
+    }
+    status.value = { type: 'error', message: message + ' Răspunsul nu se va dubla.' }
     console.error('Eroare:', err)
   } finally {
+    clearTimeout(timeout)
+    clearTimeout(slowTimer)
     sending.value = false
+    slow.value = false
   }
 }
 
@@ -221,19 +301,22 @@ function newResponse() {
       </section>
 
       <!-- ---------- Form ---------- -->
-      <form v-else key="form" @submit.prevent="submitForm">
+      <form v-else key="form" novalidate @submit.prevent="submitForm">
         <div class="field">
           <label for="prezenta">Vei fi alături de noi? <span class="req">*</span></label>
-          <select id="prezenta" v-model="form.prezenta" required>
+          <select id="prezenta" v-model="form.prezenta" required :class="{ invalid: errPrezenta }" :aria-invalid="!!errPrezenta">
             <option value="" disabled>Alege un răspuns</option>
             <option value="Da">Da, cu drag!</option>
             <option value="Nu">Din păcate, nu pot ajunge</option>
           </select>
+          <p v-if="errPrezenta" class="field-error">{{ errPrezenta }}</p>
         </div>
 
         <div v-if="form.prezenta === 'Nu'" class="field">
           <label for="nume-nu">Nume &amp; Prenume <span class="req">*</span></label>
-          <input type="text" id="nume-nu" v-model="form.guests[0].nume" placeholder="Nume Prenume" required>
+          <input type="text" id="nume-nu" v-model="form.guests[0].nume" placeholder="Nume Prenume" required
+            :class="{ invalid: form.guests[0].errNume }" :aria-invalid="!!form.guests[0].errNume" @input="form.guests[0].errNume = ''">
+          <p v-if="form.guests[0].errNume" class="field-error">{{ form.guests[0].errNume }}</p>
         </div>
 
         <template v-if="form.prezenta === 'Da'">
@@ -250,7 +333,8 @@ function newResponse() {
               />
             </TransitionGroup>
 
-            <button type="button" class="add-guest" @click="addGuest">+ Adaugă un însoțitor</button>
+            <button v-if="form.guests.length < MAX_GUESTS" type="button" class="add-guest" @click="addGuest">+ Adaugă un însoțitor</button>
+            <p v-else class="max-note">Poți confirma cel mult {{ MAX_GUESTS }} persoane într-un răspuns. Pentru mai multe, scrie-ne un mesaj mai jos.</p>
           </div>
 
           <div class="field">
@@ -267,8 +351,9 @@ function newResponse() {
         <p class="req-note"><span class="req">*</span> câmp obligatoriu</p>
 
         <button type="submit" class="submit" :disabled="sending">
-          {{ sending ? 'Se trimite...' : 'Trimite Confirmarea' }}
+          {{ sending ? 'Se trimite răspunsul…' : 'Trimite Confirmarea' }}
         </button>
+        <p v-if="sending && slow" class="slow-note">Salvăm răspunsul tău… durează de obicei câteva secunde. Te rugăm să nu închizi pagina.</p>
 
         <Transition :css="false" @enter="onStatusEnter">
           <div v-if="status" class="status" :class="status.type">{{ status.message }}</div>
@@ -336,6 +421,30 @@ form { margin: 0; }
   font-size: 0.95rem;
   padding: 14px;
   border-radius: 3px;
+}
+
+.slow-note {
+  margin: 12px 0 0;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.field-error {
+  margin: 6px 0 0;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  color: var(--error);
+}
+.invalid { border-color: var(--error) !important; box-shadow: 0 0 0 1px var(--error); }
+
+.max-note {
+  margin: 4px 0 0;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
 }
 
 .status.success { background: #eef1e9; color: #4c5940; }
