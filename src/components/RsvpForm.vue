@@ -296,7 +296,7 @@ function newResponse() {
         <div v-if="SAVE_THE_DATE_URL" class="foot std-wrap">
           <a class="std-link" :href="SAVE_THE_DATE_URL" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" /></svg>
-            Revezi save the date-ul nostru
+            Revezi videoclipul
           </a>
         </div>
       </section>
