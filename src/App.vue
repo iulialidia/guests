@@ -13,7 +13,7 @@ const RIDE_SECONDS = 3.25    // how long they keep riding away
 const RIDE_UP = 1.2          // how far up they go (in name-heights; bigger = higher)
 const NAMES_LEAD = 1         // "Vlad & Iulia" starts appearing this many seconds before the riders stop (0 = when they stop)
 const RIDE_SCALE = 0.55      // how small they get at the end (smaller = further away)
-const HOLD = 2.0             // seconds the names sit behind frame 10 before going green
+const HOLD = 1.7             // seconds the names sit behind frame 10 before going green
 const NAMES_FONT = 'Brittany' // must match the font-family in your @font-face
 const DARK_BG = '#6f7a58'     // olive / sage green background
 const GHOST_COLOR = '#7c8766' // big frame 8 in the background: just a touch lighter than DARK_BG
